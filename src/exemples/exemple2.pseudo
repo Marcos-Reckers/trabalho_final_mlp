@@ -12,6 +12,5 @@ def g() {
 
 def main() {
     x = 1;
-    z = 3;
     g();
 }
