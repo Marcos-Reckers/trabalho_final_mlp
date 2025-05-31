@@ -1,0 +1,16 @@
+int x;
+
+def f() {
+    print(x);
+}
+
+def g() {
+    int x;
+    x = 2;
+    f();
+}
+
+def main() {
+    x = 1;
+    g();
+}
