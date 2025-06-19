@@ -9,13 +9,17 @@ class Token:
         return f"Token({self.type}, {self.value})"
 
 class Lexer:
-    KEYWORDS = ['int', 'def', 'print'] # Adicione 'print' para facilitar a demonstração
+    # Adicione 'float' e 'char' como tipos suportados
+    KEYWORDS = ['int', 'float', 'char', 'def', 'print']
     OPERATORS = ['=', '+', '-', '*', '/'] # Adicione outros operadores se necessário
     DELIMITERS = ['{', '}', '(', ')', ';', ',']
 
     TOKEN_SPECIFICATIONS = [
         ('COMMENT', r'//.*'),
         ('WHITESPACE', r'\s+'),
+        # Float deve vir antes de INTEGER para evitar conflito
+        ('FLOAT', r'\d+\.\d+'),
+        ('CHAR', r"'[^'\\]'"),
         ('IDENTIFIER', r'[a-zA-Z_][a-zA-Z0-9_]*'),
         ('INTEGER', r'\d+'),
         ('OPERATOR', r'[=+\-*/]'),
@@ -41,11 +45,15 @@ class Lexer:
                         pass # Ignorar espaços em branco e comentários
                     elif token_type == 'IDENTIFIER':
                         if value in self.KEYWORDS:
-                            self.tokens.append(Token(value.upper(), value)) # Ex: INT, DEF
+                            self.tokens.append(Token(value.upper(), value)) # Ex: INT, FLOAT, CHAR, DEF
                         else:
                             self.tokens.append(Token('ID', value))
                     elif token_type == 'INTEGER':
                         self.tokens.append(Token('INT_LITERAL', int(value)))
+                    elif token_type == 'FLOAT':
+                        self.tokens.append(Token('FLOAT_LITERAL', float(value)))
+                    elif token_type == 'CHAR':
+                        self.tokens.append(Token('CHAR_LITERAL', value[1])) # Pega o caractere entre aspas
                     elif token_type == 'OPERATOR':
                         self.tokens.append(Token(value, value)) # Ex: =, +
                     elif token_type == 'DELIMITER':

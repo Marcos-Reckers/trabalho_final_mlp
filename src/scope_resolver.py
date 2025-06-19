@@ -55,15 +55,14 @@ class StaticScopeResolver:
             self.visit(stmt)
 
     def visit_IdentifierNode(self, node):
-        # This is where the magic happens for static scoping:
-        # Resolve the identifier to its declaration in the symbol table hierarchy
-        # and store a reference.
-        # This 'lookup' happens at "compile time" (analysis time).
+        # Resolve o identificador e armazena referência e tipo
         symbol_info = self.current_scope.lookup(node.name)
         if not symbol_info:
             raise Exception(f"Static Scope Error: Identifier '{node.name}' not defined.")
         node.scope_info = symbol_info # Store the resolved symbol info in the AST node
-        # For a more robust solution, scope_info might be a pointer to the actual symbol table entry
+        # Preenche o tipo do identificador, se disponível
+        if 'type' in symbol_info:
+            node.var_type = symbol_info['type']
 
     def visit_AssignNode(self, node):
         self.visit(node.identifier)

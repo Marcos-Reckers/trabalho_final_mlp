@@ -7,13 +7,13 @@ class ProgramNode(ASTNode):
 
 class VarDeclNode(ASTNode):
     def __init__(self, var_type, var_name):
-        self.var_type = var_type
+        self.var_type = var_type # 'int', 'float', 'char', etc.
         self.var_name = var_name
 
 class FunctionDefNode(ASTNode):
     def __init__(self, name, params, body):
         self.name = name
-        self.params = params # Lista de VarDeclNode (apenas nome ou tipo e nome)
+        self.params = params # Lista de VarDeclNode (tipo e nome obrigatórios)
         self.body = body     # BlockNode
 
 class BlockNode(ASTNode):
@@ -31,8 +31,9 @@ class CallNode(ASTNode):
         self.args = args # Lista de nós de expressão
 
 class IdentifierNode(ASTNode):
-    def __init__(self, name):
+    def __init__(self, name, var_type=None):
         self.name = name
+        self.var_type = var_type # Adiciona tipo ao identificador (usado em parâmetros)
         self.scope_info = None # Preenchido pelo StaticScopeResolver
 
 class IntegerNode(ASTNode):
@@ -42,3 +43,18 @@ class IntegerNode(ASTNode):
 class PrintNode(ASTNode):
     def __init__(self, expression):
         self.expression = expression
+
+# Adicione outros nós para FloatNode e CharNode se desejar
+class FloatNode(ASTNode):
+    def __init__(self, value):
+        self.value = value
+
+class CharNode(ASTNode):
+    def __init__(self, value):
+        self.value = value
+
+class BinaryOpNode(ASTNode):
+    def __init__(self, left, op, right):
+        self.left = left
+        self.op = op # '+' ou '-'
+        self.right = right

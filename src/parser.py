@@ -25,33 +25,38 @@ class Parser:
     def parse_program(self):
         declarations = []
         while self.current_token.type != 'EOF':
-            if self.current_token.type == 'INT':
+            if self.current_token.type in ['INT', 'FLOAT', 'CHAR']:
                 declarations.append(self._parse_var_declaration())
             elif self.current_token.type == 'DEF':
                 declarations.append(self._parse_function_definition())
             elif self.current_token.type == 'ID' and self.current_token.value == 'main':
-                # Simplified: assuming main is a function with no explicit def keyword
                 declarations.append(self._parse_main_function())
             else:
                 raise Exception(f"Parser error: Unexpected token at program level: {self.current_token.type}")
         return ProgramNode(declarations)
 
     def _parse_var_declaration(self):
-        self._eat('INT')
+        var_type = self.current_token.value
+        self._eat(self.current_token.type) # INT, FLOAT, CHAR
         var_name = self._eat('ID')
         self._eat(';')
-        return VarDeclNode('int', var_name)
+        return VarDeclNode(var_type, var_name)
 
     def _parse_function_definition(self):
         self._eat('DEF')
         func_name = self._eat('ID')
         self._eat('(')
         params = []
-        if self.current_token.type == 'ID': # Assuming simple params for now, just IDs
-            params.append(VarDeclNode(None, self._eat('ID')))
-            while self.current_token.type == ',':
-                self._eat(',')
-                params.append(VarDeclNode(None, self._eat('ID')))
+        if self.current_token.type in ['INT', 'FLOAT', 'CHAR']:
+            while True:
+                param_type = self.current_token.value
+                self._eat(self.current_token.type)
+                param_name = self._eat('ID')
+                params.append(VarDeclNode(param_type, param_name))
+                if self.current_token.type == ',':
+                    self._eat(',')
+                else:
+                    break
         self._eat(')')
         body = self._parse_block()
         return FunctionDefNode(func_name, params, body)
@@ -63,7 +68,6 @@ class Parser:
         body = self._parse_block()
         return FunctionDefNode('main', [], body)
 
-
     def _parse_block(self):
         self._eat('{')
         statements = []
@@ -74,25 +78,23 @@ class Parser:
 
     def _parse_statement(self):
         if self.current_token.type == 'ID':
-            # Could be assignment or function call without 'def'
             if self.tokens[self.current_token_index + 1].type == '=':
                 return self._parse_assignment_statement()
-            elif self.tokens[self.current_token_index + 1].type == '(':
+            elif self.tokens[self.current_token_index + 1].type == '(': 
                 return self._parse_call_statement()
             else:
                 raise Exception(f"Parser error: Unexpected ID usage in statement: {self.current_token.type}")
-        elif self.current_token.type == 'INT':
+        elif self.current_token.type in ['INT', 'FLOAT', 'CHAR']:
             return self._parse_var_declaration() # Local declaration
         elif self.current_token.type == 'PRINT':
             return self._parse_print_statement()
         else:
             raise Exception(f"Parser error: Unexpected token in statement: {self.current_token.type}")
 
-
     def _parse_assignment_statement(self):
         identifier = IdentifierNode(self._eat('ID'))
         self._eat('=')
-        expression = self._parse_expression() # Implement this later
+        expression = self._parse_expression()
         self._eat(';')
         return AssignNode(identifier, expression)
 
@@ -117,12 +119,25 @@ class Parser:
         self._eat(';')
         return PrintNode(expr)
 
-
     def _parse_expression(self):
-        # Simplistic expression for now: just an integer literal or an identifier
+        node = self._parse_term()
+        while self.current_token.type in ['+', '-']:
+            op = self._eat(self.current_token.type)
+            right = self._parse_term()
+            node = BinaryOpNode(node, op, right)
+        return node
+
+    def _parse_term(self):
+        # Suporte para int, float, char literals e identificadores
         if self.current_token.type == 'INT_LITERAL':
             value = self._eat('INT_LITERAL')
             return IntegerNode(value)
+        elif self.current_token.type == 'FLOAT_LITERAL':
+            value = self._eat('FLOAT_LITERAL')
+            return FloatNode(value)
+        elif self.current_token.type == 'CHAR_LITERAL':
+            value = self._eat('CHAR_LITERAL')
+            return CharNode(value)
         elif self.current_token.type == 'ID':
             name = self._eat('ID')
             return IdentifierNode(name)

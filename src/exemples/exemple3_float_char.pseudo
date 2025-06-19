@@ -1,0 +1,10 @@
+// Exemplo com float e char
+float pi;
+char letra;
+
+main() {
+    pi = 3.14;
+    letra = 'A';
+    print(pi);
+    print(letra);
+}

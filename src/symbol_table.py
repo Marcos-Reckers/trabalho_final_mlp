@@ -31,14 +31,18 @@ class SymbolTable:
 if __name__ == '__main__':
     global_scope = SymbolTable(name="global")
     global_scope.insert('x', {'type': 'int', 'value': 10})
+    global_scope.insert('y', {'type': 'float', 'value': 3.14})
+    global_scope.insert('c', {'type': 'char', 'value': 'a'})
 
     func_f_scope = SymbolTable(parent=global_scope, name="f")
     func_f_scope.insert('y', {'type': 'int', 'value': 20})
 
     func_g_scope = SymbolTable(parent=global_scope, name="g")
-    func_g_scope.insert('x', {'type': 'int', 'value': 30}) # Local 'x' in g
+    func_g_scope.insert('x', {'type': 'float', 'value': 30.5}) # Local 'x' in g
 
     print("Global x:", global_scope.lookup('x'))
+    print("Global y:", global_scope.lookup('y'))
+    print("Global c:", global_scope.lookup('c'))
     print("f's y:", func_f_scope.lookup('y'))
     print("f's x (looks up parent):", func_f_scope.lookup('x'))
     print("g's x (local):", func_g_scope.lookup('x'))

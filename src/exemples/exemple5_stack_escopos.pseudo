@@ -1,0 +1,38 @@
+// Exemplo para demonstrar pilha de chamadas e escopos diferentes
+int x;
+float y;
+char c;
+
+def f4() {
+    print(x); // Esperado: 1 (global)
+    print(y); // Esperado: 3.14 (global)
+    print(c); // Esperado: 'Z' (global)
+}
+
+def f3() {
+    char c;
+    c = 'A';
+    print(c); // Esperado: 'A' (local de f3)
+    f4();
+}
+
+def f2() {
+    float y;
+    y = 2.5;
+    print(y); // Esperado: 2.5 (local de f2)
+    f3();
+}
+
+def f1(int k) {
+    int x;
+    x = 10;
+    print(x); // Esperado: 10 (local de f1)
+    f2();
+}
+
+main() {
+    x = 1;
+    y = 3.14;
+    c = 'Z';
+    f1(5);
+}

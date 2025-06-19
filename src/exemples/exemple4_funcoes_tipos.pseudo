@@ -1,0 +1,25 @@
+// Exemplo de funções com tipos diferentes
+float resultado;
+
+// Função que recebe float e char
+
+def mostra_valores(float x, char c) {
+    print(x);
+    print(c);
+}
+
+def soma_float(float a, float b) {
+    resultado = a + b;
+    print(resultado);
+}
+
+main() {
+    float a;
+    float b;
+    char ch;
+    a = 2.5;
+    b = 4.75;
+    ch = 'Z';
+    soma_float(a, b);
+    mostra_valores(b, ch);
+}

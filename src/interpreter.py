@@ -1,31 +1,64 @@
 from ast_nodes import *
 from call_stack import CallStack, ActivationRecord
 from symbol_table import SymbolTable
+from rich.console import Console, Group
+from rich.table import Table
+from rich.panel import Panel
+from rich import box
+from rich.live import Live
+from rich.align import Align
+from time import sleep
+import json
 
 class Interpreter:
-    def __init__(self, ast, scope_mode):
+    def __init__(self, ast, scope_mode, json_log_file=None):
         self.ast = ast
         self.scope_mode = scope_mode # 'static' or 'dynamic'
         self.call_stack = CallStack()
         self.global_scope = SymbolTable(name="global") # Stores global variables and function definitions
-
-        # Pre-process functions and global variables for both scopes
+        self.json_log_file = json_log_file
         self._setup_global_scope()
+
+    def _log_json_state(self, action, output=None):
+        if not self.json_log_file:
+            return
+        # Serializa o estado da pilha e do escopo global
+        stack = []
+        for ar in self.call_stack.stack:
+            stack.append({
+                'name': ar.name,
+                'scope_type': ar.scope_type,
+                'parent': ar.parent_frame.name if ar.parent_frame else None,
+                'lex_parent': ar.lex_parent_frame.name if ar.lex_parent_frame else None,
+                'locals': ar.locals.copy()
+            })
+        global_vars = {}
+        for k, v in self.global_scope.symbols.items():
+            if 'value' in v:
+                global_vars[k] = v['value']
+        log_entry = {
+            'action': action,
+            'scope_mode': self.scope_mode,
+            'call_stack': stack,
+            'global_scope': global_vars
+        }
+        if output is not None:
+            log_entry['output'] = output
+        with open(self.json_log_file, 'a') as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+
 
     def _setup_global_scope(self):
         for declaration in self.ast.declarations:
             if isinstance(declaration, VarDeclNode):
-                # Ensure 'value' key is always present for variables
+                # Suporte a múltiplos tipos
                 self.global_scope.insert(declaration.var_name, {'type': declaration.var_type, 'value': None})
             elif isinstance(declaration, FunctionDefNode):
-                # For functions, store the function definition node itself
-                # In static scope, also store the lexical environment where it was defined
                 self.global_scope.insert(declaration.name, {
                     'type': 'function',
                     'node': declaration,
-                    'closure_scope': self.global_scope if self.scope_mode == 'static' else None # Closure for static
+                    'closure_scope': self.global_scope if self.scope_mode == 'static' else None
                 })
-        # Add 'print' as a built-in function (it doesn't have a 'value' either)
         self.global_scope.insert('print', {'type': 'builtin_function', 'node': None})
 
 
@@ -76,7 +109,15 @@ class Interpreter:
         # Local variable declaration. Initialize in the current AR.
         current_frame = self.call_stack.peek()
         if current_frame:
-            current_frame.set_local(node.var_name, None) # Initialize with default value (e.g., None, 0)
+            # Inicializa com valor padrão de acordo com o tipo
+            if node.var_type == 'int':
+                current_frame.set_local(node.var_name, 0)
+            elif node.var_type == 'float':
+                current_frame.set_local(node.var_name, 0.0)
+            elif node.var_type == 'char':
+                current_frame.set_local(node.var_name, '\0')
+            else:
+                current_frame.set_local(node.var_name, None)
         # Global variable declarations are handled in _setup_global_scope
 
     def visit_AssignNode(self, node):
@@ -231,9 +272,16 @@ class Interpreter:
     def visit_IntegerNode(self, node):
         return node.value
 
+    def visit_FloatNode(self, node):
+        return node.value
+
+    def visit_CharNode(self, node):
+        return node.value
+
     def visit_PrintNode(self, node):
         value = self.visit(node.expression)
         print(f"OUTPUT: {value}")
+        self._log_json_state(f"Print statement: {value}", output=value)
         self._print_call_stack_state(f"Print statement: {value}")
 
 
@@ -251,23 +299,60 @@ class Interpreter:
 
 
     def _print_call_stack_state(self, action):
-        print(f"\n--- {action} ---")
-        print("Call Stack:")
-        if not self.call_stack.stack:
-            print("  (empty)")
+        self._log_json_state(action)
+        console = Console()
+        # Delimitação dinâmica antes da etapa
+        console.rule()
+        if action.startswith("Function Call") or action.startswith("Function Return"):
+            with Live(refresh_per_second=10, console=console, transient=True) as live:
+                for i in range(3):
+                    live.update(Panel(f"[bold green]{action}{'.' * (i+1)}", border_style="green"))
+                    sleep(0.08)
         else:
-            # Print from bottom to top (oldest to newest call)
-            for i, ar in enumerate(self.call_stack.stack):
-                # Ensure handling of None for parent frames
-                lex_parent_name = ar.lex_parent_frame.name if ar.lex_parent_frame else "None"
-                parent_name = ar.parent_frame.name if ar.parent_frame else "None"
-                print(f"  [{i}] {ar.name} (type='{ar.scope_type}', lex_parent='{lex_parent_name}', parent='{parent_name}'): {ar.locals}")
-
-        print("Global Scope:")
-        # Filter out functions and only include symbols that have a 'value' key
+            console.rule(f"[bold cyan]{action}")
+        # Pilha desenhada de cima para baixo (topo da pilha em cima)
+        stack_panels = []
+        for i, ar in enumerate(reversed(self.call_stack.stack)):
+            lex_parent_name = ar.lex_parent_frame.name if ar.lex_parent_frame else "None"
+            parent_name = ar.parent_frame.name if ar.parent_frame else "None"
+            locals_table = Table(box=box.MINIMAL, show_header=True, header_style="bold blue")
+            locals_table.add_column("Local", style="bold yellow")
+            locals_table.add_column("Value", style="white")
+            if ar.locals:
+                for k, v in ar.locals.items():
+                    locals_table.add_row(k, repr(v))
+            else:
+                locals_table.add_row("(empty)", "-")
+            panel = Panel(locals_table, title=f"[bold magenta]{ar.name}[/] (type={ar.scope_type}, lex={lex_parent_name}, parent={parent_name})", border_style="magenta")
+            stack_panels.append(panel)
+        if stack_panels:
+            stack_render = Group(*stack_panels)
+            console.print(Panel(stack_render, title="[bold]Call Stack (Top → Base)", border_style="cyan"))
+        else:
+            console.print(Panel("(empty)", title="Call Stack", border_style="cyan"))
+        # Escopo Global destacado
+        global_table = Table(title="Global Scope", box=box.SIMPLE, show_lines=True, expand=True)
+        global_table.add_column("Name", style="bold yellow")
+        global_table.add_column("Value", style="white")
         global_vars_display = {}
         for k, v in self.global_scope.symbols.items():
-            if 'value' in v: # Only include if 'value' key exists
+            if 'value' in v:
                 global_vars_display[k] = v['value']
-        print(f"  {global_vars_display}")
-        print("--------------------")
+        if global_vars_display:
+            for k, v in global_vars_display.items():
+                global_table.add_row(k, repr(v))
+        else:
+            global_table.add_row("(empty)", "-")
+        console.print(Panel(global_table, title="🌎 [bold blue]Global Scope[/]", border_style="blue", padding=(1,2)))
+        # Delimitação dinâmica depois da etapa
+        console.rule()
+
+    def visit_BinaryOpNode(self, node):
+        left = self.visit(node.left)
+        right = self.visit(node.right)
+        if node.op == '+':
+            return left + right
+        elif node.op == '-':
+            return left - right
+        else:
+            raise Exception(f"Unsupported binary operator: {node.op}")
