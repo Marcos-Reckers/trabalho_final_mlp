@@ -6,7 +6,9 @@ def f() {
 
 def g() {
     int x;
-    x = 2;
+    int y;
+    y = 4;
+    x = 3.0 + 2 + y;
     f();
 }
 

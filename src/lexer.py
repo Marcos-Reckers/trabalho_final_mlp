@@ -11,7 +11,7 @@ class Token:
 class Lexer:
     # Adicione 'float' e 'char' como tipos suportados
     KEYWORDS = ['int', 'float', 'char', 'def', 'print']
-    OPERATORS = ['=', '+', '-', '*', '/'] # Adicione outros operadores se necessário
+    OPERATORS = ['=', '+', '-'] # Adicione outros operadores se necessário
     DELIMITERS = ['{', '}', '(', ')', ';', ',']
 
     TOKEN_SPECIFICATIONS = [

@@ -121,7 +121,7 @@ class Parser:
 
     def _parse_expression(self):
         node = self._parse_term()
-        while self.current_token.type in ['+', '-']:
+        while self.current_token.type in ['+', '-'] :
             op = self._eat(self.current_token.type)
             right = self._parse_term()
             node = BinaryOpNode(node, op, right)
@@ -152,14 +152,14 @@ if __name__ == '__main__':
     def f() {
       print(x);
     }
-    def g() {
+    def g(int k) {
       int x;
       x = 2;
       f();
     }
     main() {
       x = 1;
-      g();
+      g(5);
     }
     """
     lexer = Lexer(code)

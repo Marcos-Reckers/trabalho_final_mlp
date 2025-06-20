@@ -1,0 +1,17 @@
+int x;
+float y;
+char c;
+
+def f4() {
+    print(x); // Esperado: 1 (global)
+    print(y); // Esperado: 3.14 (global)
+    print(c); // Esperado: 'Z' (global)
+    f4();
+}
+
+main() {
+    x = 1;
+    y = 3.14;
+    c = 'Z';
+    f4();
+}

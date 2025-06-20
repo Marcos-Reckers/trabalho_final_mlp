@@ -17,6 +17,10 @@ class Interpreter:
         self.call_stack = CallStack()
         self.global_scope = SymbolTable(name="global") # Stores global variables and function definitions
         self.json_log_file = json_log_file
+        if json_log_file:
+            # Ensure the log file is created and empty
+            with open(json_log_file, 'w') as f:
+                f.write('')
         self._setup_global_scope()
 
     def _log_json_state(self, action, output=None):
