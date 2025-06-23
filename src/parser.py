@@ -1,5 +1,15 @@
+"""
+Este módulo implementa o analisador sintático (parser) do interpretador. Realiza 
+análise sintática descendente recursiva, convertendo a sequência de tokens em uma 
+Árvore Sintática Abstrata (AST). Reconhece a gramática da linguagem incluindo 
+declarações de variáveis, definições de funções, blocos de código, atribuições, 
+chamadas de função, expressões aritméticas e comandos de impressão. Implementa 
+métodos para cada construção gramatical e produz nós AST correspondentes.
+"""
+
 from lexer import Token
 from ast_nodes import *
+
 
 class Parser:
     def __init__(self, tokens):
@@ -20,7 +30,8 @@ class Parser:
             self._advance()
             return value
         else:
-            raise Exception(f"Parser error: Expected {token_type}, got {self.current_token.type}")
+            raise Exception(
+                f"Parser error: Expected {token_type}, got {self.current_token.type}")
 
     def parse_program(self):
         declarations = []
@@ -32,12 +43,13 @@ class Parser:
             elif self.current_token.type == 'ID' and self.current_token.value == 'main':
                 declarations.append(self._parse_main_function())
             else:
-                raise Exception(f"Parser error: Unexpected token at program level: {self.current_token.type}")
+                raise Exception(
+                    f"Parser error: Unexpected token at program level: {self.current_token.type}")
         return ProgramNode(declarations)
 
     def _parse_var_declaration(self):
         var_type = self.current_token.value
-        self._eat(self.current_token.type) # INT, FLOAT, CHAR
+        self._eat(self.current_token.type)
         var_name = self._eat('ID')
         self._eat(';')
         return VarDeclNode(var_type, var_name)
@@ -62,7 +74,7 @@ class Parser:
         return FunctionDefNode(func_name, params, body)
 
     def _parse_main_function(self):
-        self._eat('ID') # 'main'
+        self._eat('ID')
         self._eat('(')
         self._eat(')')
         body = self._parse_block()
@@ -80,16 +92,18 @@ class Parser:
         if self.current_token.type == 'ID':
             if self.tokens[self.current_token_index + 1].type == '=':
                 return self._parse_assignment_statement()
-            elif self.tokens[self.current_token_index + 1].type == '(': 
+            elif self.tokens[self.current_token_index + 1].type == '(':
                 return self._parse_call_statement()
             else:
-                raise Exception(f"Parser error: Unexpected ID usage in statement: {self.current_token.type}")
+                raise Exception(
+                    f"Parser error: Unexpected ID usage in statement: {self.current_token.type}")
         elif self.current_token.type in ['INT', 'FLOAT', 'CHAR']:
-            return self._parse_var_declaration() # Local declaration
+            return self._parse_var_declaration()
         elif self.current_token.type == 'PRINT':
             return self._parse_print_statement()
         else:
-            raise Exception(f"Parser error: Unexpected token in statement: {self.current_token.type}")
+            raise Exception(
+                f"Parser error: Unexpected token in statement: {self.current_token.type}")
 
     def _parse_assignment_statement(self):
         identifier = IdentifierNode(self._eat('ID'))
@@ -121,14 +135,13 @@ class Parser:
 
     def _parse_expression(self):
         node = self._parse_term()
-        while self.current_token.type in ['+', '-'] :
+        while self.current_token.type in ['+', '-']:
             op = self._eat(self.current_token.type)
             right = self._parse_term()
             node = BinaryOpNode(node, op, right)
         return node
 
     def _parse_term(self):
-        # Suporte para int, float, char literals e identificadores
         if self.current_token.type == 'INT_LITERAL':
             value = self._eat('INT_LITERAL')
             return IntegerNode(value)
@@ -142,9 +155,10 @@ class Parser:
             name = self._eat('ID')
             return IdentifierNode(name)
         else:
-            raise Exception(f"Parser error: Expected expression, got {self.current_token.type}")
+            raise Exception(
+                f"Parser error: Expected expression, got {self.current_token.type}")
 
-# Exemplo de uso (para testar o parser)
+
 if __name__ == '__main__':
     from lexer import Lexer
     code = """
@@ -166,12 +180,11 @@ if __name__ == '__main__':
     parser = Parser(lexer.get_tokens())
     ast = parser.parse_program()
 
-    # Simple AST traversal to verify
     def print_ast(node, indent=0):
         if isinstance(node, ASTNode):
             print("  " * indent + f"{node.__class__.__name__}")
             for attr, value in node.__dict__.items():
-                if attr not in ['scope_info'] and not attr.startswith('_'): # Avoid internal attrs
+                if attr not in ['scope_info'] and not attr.startswith('_'):
                     if isinstance(value, list):
                         print("  " * (indent + 1) + f"{attr}: [")
                         for item in value:
